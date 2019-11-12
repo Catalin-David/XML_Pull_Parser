@@ -1,6 +1,8 @@
 package com.example.xml_pull_parser;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,13 +23,24 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     private ArrayList<NewsItem> news;
+    private RecyclerView recyclerView;
+    private RecyclerViewAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        recyclerView = findViewById(R.id.recyclerView);
+        adapter = new RecyclerViewAdapter(this);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
         news = new ArrayList<>();
+
+        GetDataAsyncTask getDataAsyncTask = new GetDataAsyncTask();
+        getDataAsyncTask.execute();
+
     }
 
     private class GetDataAsyncTask extends AsyncTask<Void, Void, Void> {
@@ -44,6 +57,13 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+
+            adapter.setNews(news);
+            super.onPostExecute(aVoid);
         }
     }
 
@@ -90,15 +110,15 @@ public class MainActivity extends AppCompatActivity {
                         }else if(tagName.equals("link")){
                             // get link content
                             link = getContent(parser, "link");
-                        }else if(tagName.equals("pubdate")){
+                        }else if(tagName.equals("pubDate")){
                             // get date content
-                            date = getContent(parser, "pubdate");
+                            date = getContent(parser, "pubDate");
                         }else{
                             //skips current tag
                             skipTag(parser);
                         }
                     }
-
+                    date = date.substring(0, date.length()-5);
                     NewsItem item = new NewsItem(title, desc, link, date);
                     news.add(item);
                 }else{
@@ -140,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
 
             if(parser.next() == XmlPullParser.TEXT){
                 content = parser.getText();
+                parser.next();
             }
 
             return content;
@@ -155,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
     private InputStream getInputStream(){
         Log.d(TAG, "getInputStream: started");
         try {
-            URL url = new URL("");
+            URL url = new URL("https://www.motorsport.com/rss/f1/news/");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setDoInput(true);
